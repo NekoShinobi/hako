@@ -1,0 +1,96 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+# Actions are pinned to commit SHAs, not tags. A tag is mutable: whoever controls
+# the action's repo can repoint v4 at new code, and it runs here with our
+# GITHUB_TOKEN. The trailing comment records which release each SHA was, so
+# Dependabot/Renovate can still offer upgrades.
+env:
+  # Hardcoded rather than derived from github.repository: that expression keeps
+  # the repo's capitalisation (NekoShinobi/hako) and image references must be
+  # lowercase.
+  IMAGE: ghcr.io/nekoshinobi/hako
+
+jobs:
+  # Advisory check against the RustSec database. Kept separate from the build so
+  # a newly published advisory surfaces as its own failed check rather than
+  # blocking an image that was already fine. Add `needs: audit` to the build job
+  # if you would rather a vulnerable dependency stop the release outright.
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@6c6fd71fe4fb72c3697d269963d0e15df8adedad # v2
+        with:
+          tool: cargo-audit
+
+      # Exits non-zero on a known vulnerability. Unmaintained and yanked crates
+      # are reported as warnings without failing the run.
+      #
+      # RUSTSEC-2026-0235 (rkyv < 0.8.17, out-of-bounds read on malformed
+      # archives) is ignored deliberately. rkyv reaches the lockfile only as an
+      # *optional* dependency of rust_decimal, which arrives via sea-orm; the
+      # feature is not enabled, `cargo tree -i rkyv` is empty, and the vulnerable
+      # code is never compiled into the binary. It also cannot be fixed here:
+      # rust_decimal 1.42 pins rkyv "^0.7.46", so the upgrade has to come from
+      # upstream. cargo-audit still prints the ignored advisory, so this stays
+      # visible — re-check it whenever sea-orm or rust_decimal moves.
+      - name: Audit Rust dependencies
+        run: cargo audit --ignore RUSTSEC-2026-0235
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Lets GITHUB_TOKEN push to GHCR, so no registry credentials are needed.
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Login docker registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ${{ env.IMAGE }}
+          # Every push publishes an image, as before, but a branch push is tagged
+          # with its own name so only the default branch moves :latest.
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Layer cache lets cargo-chef's dependency layer survive between runs.
+          # The Dockerfile's sccache mount is a cache mount, which buildx does
+          # not export, so that part stays warm only within a single run.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,32 @@
+# Secrets and local state. `COPY . .` runs in the planner and builder stages,
+# and the CI publishes those layers to the GitHub Actions cache with
+# `cache-to: mode=max` — so anything reachable here can outlive the build.
+.env
+.env.*
+*.db
+*.db-shm
+*.db-wal
+uploads/
+
+# Version control and CI — never needed to compile anything
+.git/
+.gitignore
+.github/
+
+# Build output. The image builds both the Rust binary and the frontend from
+# source in earlier stages, so local artefacts would only be copied and thrown
+# away — or worse, shadow a fresh build.
+target/
+static/
+ui/build/
+ui/.svelte-kit/
+ui/node_modules/
+node_modules/
+
+# Docs and developer tooling
+docs/
+compose.yml
+justfile
+config.toml
+storage.db
+*.md

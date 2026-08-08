@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>hako</Name>
+  <Repository>ghcr.io/nekoshinobi/hako:latest</Repository>
+  <Registry>https://github.com/NekoShinobi/hako/pkgs/container/hako</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/NekoShinobi/hako/issues</Support>
+  <Project>https://github.com/NekoShinobi/hako</Project>
+  <Overview>Hako - anonymous temporary file sharing. Files are encrypted at rest with AES-256-GCM and deleted automatically at expiry. Download links are unguessable random tokens, uploaded files are never served back as a type the browser will execute, IP addresses are stored only as keyed HMAC digests, and uploads are size-capped as they stream.&#13;&#13;IMPORTANT - the container runs as an unprivileged user (uid/gid 10001), not root. The appdata paths below are bind mounts, so Unraid will create them owned by root and Hako will not be able to write. Before first start, run this once from a terminal:&#13;&#13;mkdir -p /mnt/user/appdata/hako/{data,uploads,images} &amp;&amp; chown -R 10001:10001 /mnt/user/appdata/hako&#13;&#13;Set an Encryption Key as well - leaving it blank starts Hako on a publicly known placeholder key and shows a warning banner in the web UI.</Overview>
+  <Category>Tools: Network:Web Network:Other</Category>
+  <WebUI>http://[IP]:[PORT:9090]</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/NekoShinobi/hako/main/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled></DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI Port" Target="9090" Default="9090" Mode="tcp" Description="Web interface and API port" Type="Port" Display="always" Required="true" Mask="false">9090</Config>
+  <Config Name="Database Storage" Target="/data" Default="/mnt/user/appdata/hako/data" Mode="rw" Description="SQLite database storage location. Must be owned by uid 10001 - see Overview." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/hako/data</Config>
+  <Config Name="Upload Storage" Target="/uploads" Default="/mnt/user/appdata/hako/uploads" Mode="rw" Description="Encrypted file upload storage location. Must be owned by uid 10001 - see Overview." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/hako/uploads</Config>
+  <Config Name="Image Storage" Target="/app/static/images" Default="/mnt/user/appdata/hako/images" Mode="rw" Description="AVIF character images storage (optional). Must be readable by uid 10001 - see Overview." Type="Path" Display="advanced" Required="false" Mask="false">/mnt/user/appdata/hako/images</Config>
+  <Config Name="Database URL" Target="DATABASE_URL" Default="sqlite:/data/hako.db" Mode="" Description="Database connection string" Type="Variable" Display="advanced" Required="true" Mask="false">sqlite:/data/hako.db</Config>
+  <Config Name="Upload Directory" Target="UPLOAD_DIR" Default="/uploads" Mode="" Description="Internal upload directory path" Type="Variable" Display="advanced" Required="true" Mask="false">/uploads</Config>
+  <Config Name="Encryption Key" Target="ENCRYPTION_KEY" Default="" Mode="" Description="32-character encryption key for AES-256-GCM. Generate with: openssl rand -base64 24 - that is exactly 32 characters, with nothing truncated. Anything shorter is refused at startup; blank falls back to a publicly known placeholder key and warns. Changing it later makes existing uploads permanently undecryptable." Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Host" Target="HOST" Default="0.0.0.0" Mode="" Description="Server bind address" Type="Variable" Display="advanced" Required="true" Mask="false">0.0.0.0</Config>
+  <Config Name="Port" Target="PORT" Default="9090" Mode="" Description="Internal server port" Type="Variable" Display="advanced" Required="true" Mask="false">9090</Config>
+  <Config Name="Rust Log Level" Target="RUST_LOG" Default="info" Mode="" Description="Logging level (trace, debug, info, warn, error)" Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
+  <Config Name="Max File Size (MB)" Target="MAX_FILE_SIZE_MB" Default="100" Mode="" Description="Maximum upload file size in megabytes" Type="Variable" Display="always" Required="false" Mask="false">100</Config>
+  <Config Name="File Expiry (Minutes)" Target="FILE_EXPIRY_MINUTES" Default="5" Mode="" Description="Minutes until uploaded files expire and are deleted" Type="Variable" Display="always" Required="false" Mask="false">5</Config>
+  <Config Name="Cleanup Interval (Seconds)" Target="CLEANUP_INTERVAL_SECS" Default="300" Mode="" Description="How often to check for expired files (seconds)" Type="Variable" Display="advanced" Required="false" Mask="false">300</Config>
+  <Config Name="Access Log Retention (Days)" Target="ACCESS_LOG_RETENTION_DAYS" Default="30" Mode="" Description="Days to retain access logs before deletion" Type="Variable" Display="advanced" Required="false" Mask="false">30</Config>
+  <Config Name="Database Max Connections" Target="DB_MAX_CONNECTIONS" Default="10" Mode="" Description="Maximum database connection pool size" Type="Variable" Display="advanced" Required="false" Mask="false">10</Config>
+  <Config Name="Actix Workers" Target="ACTIX_WORKERS" Default="4" Mode="" Description="Number of worker threads (defaults to CPU count)" Type="Variable" Display="advanced" Required="false" Mask="false">4</Config>
+  <Config Name="Image Directory" Target="IMAGE_DIR" Default="/app/static/images" Mode="" Description="Internal image directory path" Type="Variable" Display="advanced" Required="false" Mask="false">/app/static/images</Config>
+  <Config Name="Base URL (Production)" Target="HAKO_BASE_URL" Default="" Mode="" Description="Production domain for CORS restriction (e.g., https://yourdomain.com)" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+</Container>

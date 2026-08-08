@@ -1,0 +1,52 @@
+services:
+  hako:
+    build: .
+    container_name: hako
+    ports:
+      - "9090:9090"
+    environment:
+      - DATABASE_URL=sqlite:/data/hako.db
+      - UPLOAD_DIR=/uploads
+      # Generate with:  openssl rand -base64 24   (produces exactly 32 chars)
+      # Left empty, the server falls back to a placeholder key that is published
+      # in this repository, logs a warning on every start, and shows a banner in
+      # the UI. Fine for a first look, useless as encryption.
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - HOST=0.0.0.0
+      - PORT=9090
+      - RUST_LOG=info
+      - MAX_FILE_SIZE_MB=100
+      - FILE_EXPIRY_MINUTES=5
+      - CLEANUP_INTERVAL_SECS=300
+      - ACCESS_LOG_RETENTION_DAYS=30
+      - DB_MAX_CONNECTIONS=10
+      - ACTIX_WORKERS=4
+      - IMAGE_DIR=/app/static/images
+      # - HAKO_BASE_URL=https://yourdomain.com  # Uncomment and set for production
+      #
+      # Which uploaded types render in the browser instead of downloading.
+      # Comma-separated; accepts exact types, `type/*`, or `*`. Deny wins over
+      # allow. Leaving both unset previews images/audio/video, shows text as
+      # plain text, and downloads everything else.
+      #
+      #   Preview SVG too (see the warning below):
+      # - INLINE_ALLOW_TYPES=image/*,audio/*,video/*
+      #   Keep the defaults but never preview video:
+      # - INLINE_DENY_TYPES=video/*
+      #   Download everything, preview nothing:
+      # - INLINE_ALLOW_TYPES=
+      # - INLINE_DENY_TYPES=text/*
+      #
+      # WARNING: image/svg+xml, text/html and the XML types are documents that
+      # run <script> when a browser renders them. Allowing one means an uploaded
+      # file can execute script, and only the CSP sandbox header keeps it off
+      # this origin. Do it only if downloads are served from a separate domain.
+      # The server logs the effective policy, and warns, on every start.
+    volumes:
+      - hako-data:/data
+      - hako-uploads:/uploads
+    restart: unless-stopped
+
+volumes:
+  hako-data:
+  hako-uploads:
