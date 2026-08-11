@@ -1,11 +1,11 @@
 # Development image for the Rust API (`just up-dev`).
 #
-# Only the toolchain lives in the image — the sources arrive through a bind
+# Stable base, matching rust-toolchain.toml. Only the toolchain lives in the image — the sources arrive through a bind
 # mount, and `target/` plus the cargo registry are named volumes, so a rebuild
 # here never touches the host's own `./target`. Cargo takes a lock on a target
 # directory, so sharing one would make a host `just check` and this container's
 # bacon block each other.
-FROM rustlang/rust:nightly-slim
+FROM rust:1-slim
 
 ARG DEV_UID=1000
 ARG DEV_GID=1000

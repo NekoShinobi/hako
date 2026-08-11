@@ -1,5 +1,9 @@
 [toolchain]
-# Nightly is required by `just deps-update`: the supply-chain cooldown is
-# enforced with `-Zmin-publish-age`, which stable cargo does not accept.
-# Pinning it here means the host and any container resolve the same compiler.
-channel = "nightly"
+# Stable, because this crate compiles on stable and CI installs stable. Pinning
+# it here means local dev, CI and the dev container all resolve the same
+# compiler instead of each picking up whatever their environment defaults to.
+#
+# `just deps-update` still needs nightly for -Zmin-publish-age; it asks for it
+# per invocation with `cargo +nightly`, which overrides this file without
+# dragging the whole project onto nightly.
+channel = "stable"

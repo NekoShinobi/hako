@@ -167,18 +167,19 @@ deps-update:
     days="{{ DEPS_MIN_AGE_DAYS }}"
     seconds="$(( days * 24 * 60 * 60 ))"
 
-    # -Zmin-publish-age is nightly-only. rust-toolchain.toml pins nightly, so
-    # this should hold; failing loudly beats silently updating with no cooldown.
-    if ! cargo -Z help 2>&1 | grep -q 'min-publish-age'; then
-      echo "error: this cargo has no -Zmin-publish-age, so the ${days}-day cooldown cannot be enforced." >&2
-      echo "Use a nightly cargo that lists min-publish-age in 'cargo -Z help'." >&2
+    # -Zmin-publish-age is nightly-only, but this crate builds on stable — so
+    # nightly is requested for this one command rather than pinned project-wide
+    # in a rust-toolchain.toml, which would drag CI and Docker onto nightly too.
+    if ! cargo +nightly -Z help 2>&1 | grep -q 'min-publish-age'; then
+      echo "error: nightly cargo has no -Zmin-publish-age, so the ${days}-day cooldown cannot be enforced." >&2
+      echo "Install it with: rustup toolchain install nightly" >&2
       exit 1
     fi
 
     # Deliberately NOT `bun update --latest`: that ignores the semver ranges in
     # package.json and walks every dependency to its newest major. Use
     # `deps-update-major` when major bumps are the actual intent.
-    cargo update -Z min-publish-age --config "registry.global-min-publish-age = \"${days} days\""
+    cargo +nightly update -Z min-publish-age --config "registry.global-min-publish-age = \"${days} days\""
     cd ui && bun update --minimum-release-age "$seconds"
 
 # Bump frontend dependencies across major versions (review, then run `just ci`).
