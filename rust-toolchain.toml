@@ -1,0 +1,5 @@
+[toolchain]
+# Nightly is required by `just deps-update`: the supply-chain cooldown is
+# enforced with `-Zmin-publish-age`, which stable cargo does not accept.
+# Pinning it here means the host and any container resolve the same compiler.
+channel = "nightly"

@@ -37,3 +37,9 @@ uploads/
 # Test files
 test_file.txt
 downloaded_file.txt
+
+# Local build output — the UI is copied here by `just build-ui`
+static/
+
+# Dev container data (database + uploads), inspectable from the host
+.devdata/

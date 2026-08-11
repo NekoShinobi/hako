@@ -1,0 +1,40 @@
+# Bacon drives the backend development loop (`just dev-api`).
+# https://dystroy.org/bacon/
+#
+# hako writes its SQLite database (hako.db) and encrypted uploads (./uploads)
+# into the directory it runs from. Both are covered by .gitignore, which bacon
+# honours, so the server cannot restart itself in a loop by writing its own
+# state. If either ever leaves .gitignore, add it to an `ignore` list here.
+
+default_job = "run"
+
+[jobs.check]
+command = ["cargo", "check", "--all-targets", "--color", "always"]
+need_stdout = false
+
+[jobs.clippy]
+command = [
+    "cargo", "clippy", "--all-targets", "--all-features",
+    "--color", "always", "--", "-D", "warnings",
+]
+need_stdout = false
+
+[jobs.test]
+command = ["cargo", "test", "--color", "always"]
+need_stdout = true
+
+# Rebuild and restart the server on every source change. `background = false`
+# keeps the server's own stdout streaming, and `kill_then_restart` makes the
+# old process release the port before the new one binds it.
+[jobs.run]
+command = ["cargo", "run", "--color", "always"]
+need_stdout = true
+allow_warnings = true
+background = false
+on_change_strategy = "kill_then_restart"
+
+[keybindings]
+c = "job:check"
+l = "job:clippy"
+r = "job:run"
+t = "job:test"

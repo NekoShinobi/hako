@@ -5,12 +5,15 @@ COPY . .
 RUN --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
     cargo chef prepare --recipe-path recipe.json
 
-FROM node:25-alpine AS frontend-builder
+# Bun is the package manager. A build proxies nothing, so unlike the dev server
+# it does not need to run under Node — see Dockerfile.ui-dev for why that
+# distinction matters.
+FROM oven/bun:1.3.14-alpine AS frontend-builder
 WORKDIR /app/ui
-COPY ui/package.json ui/package-lock.json* ./
-RUN npm ci
+COPY ui/package.json ui/bun.lock* ./
+RUN bun install --frozen-lockfile
 COPY ui/ .
-RUN npm run build
+RUN bun run build
 
 FROM base AS builder
 WORKDIR /app

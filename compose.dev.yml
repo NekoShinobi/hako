@@ -1,0 +1,87 @@
+# Full containerized development stack — `just up-dev`.
+#
+# This is the parity path, not the daily loop: `just dev` runs bacon and Vite
+# on the host, which is faster and needs none of the ownership or volume
+# plumbing below. Keep this working for onboarding a fresh machine and for
+# reproducing container-specific behaviour.
+#
+# DEV_UID/DEV_GID default to 1000 but the justfile exports the real host values,
+# so files the containers write into the bind mount stay owned by you.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        DEV_UID: ${DEV_UID:-1000}
+        DEV_GID: ${DEV_GID:-1000}
+    ports:
+      - "${PORT:-9090}:${PORT:-9090}"
+    volumes:
+      - .:/app
+      # Container-generated and never read from the host. A separate target
+      # directory also keeps this build from fighting the host's cargo lock.
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+      # No volume for dev data: it lives in .devdata/ inside the bind-mounted
+      # repo so you can inspect the database and uploads from the host. The
+      # entrypoint creates and chowns it. Declaring it as a named volume here
+      # would make Docker create the host directory root-owned before the
+      # entrypoint could run.
+    environment:
+      - HOST=0.0.0.0
+      - PORT=${PORT:-9090}
+      - DATABASE_URL=sqlite:/app/.devdata/hako.db
+      - UPLOAD_DIR=/app/.devdata/uploads
+      - RUST_LOG=${RUST_LOG:-info}
+      # Without a key hako falls back to a built-in default and warns loudly.
+      # `just keygen` writes a real one into .env, which dotenv-load picks up.
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      # Named volumes arrive root-owned; the entrypoint chowns these before
+      # dropping to DEV_UID, or the first build fails writing /app/target.
+      - DEV_CHOWN_PATHS=/app/target /app/.devdata /app/.devdata/uploads /usr/local/cargo/registry /usr/local/cargo/git
+    command: bacon --headless run
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui-dev
+      args:
+        DEV_UID: ${DEV_UID:-1000}
+        DEV_GID: ${DEV_GID:-1000}
+    working_dir: /app/ui
+    ports:
+      - "${UI_PORT:-5173}:5173"
+    volumes:
+      - ./ui:/app/ui
+      # Shadow everything the container generates so it never lands in the host
+      # tree. node_modules/.vite rides inside the node_modules volume on
+      # purpose — the dep-optimizer cache must invalidate with the lockfile.
+      - ui-node-modules:/app/ui/node_modules
+      - ui-svelte-kit:/app/ui/.svelte-kit
+      - ui-bun-cache:/tmp/bun-cache
+    environment:
+      # A host UID with no /etc/passwd entry has no home directory, and tools
+      # that write dotfiles fail confusingly without this.
+      - HOME=/tmp
+      - BUN_INSTALL_CACHE_DIR=/tmp/bun-cache
+      - DEV_CHOWN_PATHS=/app/ui/node_modules /app/ui/.svelte-kit /tmp/bun-cache
+      # Vite proxies /config, /upload, /file and /img to the api service — not
+      # to its own localhost.
+      - API_URL=http://api:${PORT:-9090}
+      # inotify does not reliably cross a bind mount; on a native Linux mount
+      # this can be left unset to save the polling CPU.
+      - VITE_USE_POLLING=${VITE_USE_POLLING:-true}
+    # svelte-kit sync is explicit rather than left to bun's `prepare` hook:
+    # .svelte-kit is its own volume, and once node_modules is cached bun skips
+    # install (and therefore prepare), leaving the volume empty.
+    command: sh -c "bun install --frozen-lockfile && bunx svelte-kit sync && bun run dev --host 0.0.0.0"
+    depends_on:
+      - api
+
+volumes:
+  cargo-cache:
+  target-cache:
+  ui-node-modules:
+  ui-svelte-kit:
+  ui-bun-cache:

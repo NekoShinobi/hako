@@ -30,3 +30,6 @@ justfile
 config.toml
 storage.db
 *.md
+
+# Dev container data — never belongs in a production image
+.devdata/

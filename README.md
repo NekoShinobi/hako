@@ -49,11 +49,12 @@ undecryptable**, so generate it once, before you store anything you care about.
 
 ### From source
 
-Requires Rust (edition 2024) and Node for the UI.
+Requires Rust (edition 2024) and [Bun](https://bun.sh) for the UI.
 
 ```bash
 # Build the frontend into ./static (served by Actix, SPA fallback included)
-(cd ui && npm ci && npm run build)
+# Or simply: just build
+(cd ui && bun install --frozen-lockfile && bun run build)
 rm -rf static && cp -r ui/build static
 
 # Configure and run

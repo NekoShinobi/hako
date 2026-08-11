@@ -51,8 +51,7 @@
 		<p class="mb-4">
 			Download a file using its token. The file will be decrypted and served with the original
 			filename. The token is the only thing protecting the file, so treat it as a secret —
-			<code class="font-mono">hash</code> is returned for verification only and is not part of the
-			URL.
+			<code class="font-mono">hash</code> is returned for verification only and is not part of the URL.
 		</p>
 
 		<div class="mb-4">
