@@ -140,7 +140,7 @@ fmt: node-modules
 [group('checks')]
 fmt-check: node-modules
     cargo fmt --all -- --check
-    cd ui && bunx prettier --check .
+    cd ui && bun run format:check
 
 # Everything that should pass before a commit. This is what `check` used to be.
 [group('checks')]

@@ -14,7 +14,7 @@
 					? 'dark'
 					: 'light';
 		document.documentElement.dataset.theme = theme;
-	} catch (e) {
+	} catch {
 		/* private mode / no storage — keep the default */
 	}
 })();
